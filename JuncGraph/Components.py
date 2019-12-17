@@ -59,6 +59,9 @@ class Vertex:
                                                       self.getCov(),
                                                       self.getWeight())
 
+    def __repr__(self):
+        return self.__str__()
+
 
 class Segment:
     def __init__(self, aType, aIdx, aCov, aCred, position=None):
@@ -139,12 +142,14 @@ class Segment:
         else:
             return -1
 
-
     def __str__(self):
         return '({0}{1}, {2:.2f}, {3:.3f})'.format(self.mType,
                                                    self.mIdx,
                                                    self.getCov(),
                                                    self.getWeight())
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class Edge:

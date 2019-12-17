@@ -250,6 +250,12 @@ def getCycles(g):
                     failure_cnt += 1
                     print '-' * 100
                     continue
+                except TooManyTraversalException:
+                    stdout('Too many traversals for some vertices for '
+                           'current choice of fork.')
+                    print '-' * 100
+                    failure_cnt += 1
+                    continue
                 except BreakPointNotEnumeratedException as ex:
                     fork_pts.append(ex.breakPoint)
                     try_again = True

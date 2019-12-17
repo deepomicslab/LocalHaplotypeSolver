@@ -75,6 +75,10 @@ class TraversalException(Exception):
     pass
 
 
+class TooManyTraversalException(Exception):
+    pass
+
+
 def printLGM(lgm, color=None):
     """This already handles print function.
     If use print printLGM(), there will be a "None" being printed.

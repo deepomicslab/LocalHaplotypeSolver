@@ -2,6 +2,7 @@ import SysSettings
 import random
 from Util.Utilities import *
 from JuncGraph.Graph import Graph
+import time
 
 
 __author__ = 'XU Chang'
@@ -55,19 +56,32 @@ def findCycle(g, startV):
 
     """
     cycleFound = [startV]
+
     aFrom = startV
     remaining_cn = 0
     _min_remain_w = float('inf')
     traversed_edges = []
+    # cnt = 0
     while 1:
+        # cnt += 1
         next_edge = selectNextEdge(aFrom, g, startV)
+        # print
         next_v = next_edge.mTargetV
         aFrom.mLastEdgeChoice = next_edge
         traversed_edges.append(next_edge)
         _min_remain_w = min(_min_remain_w, next_edge.traverse())
+        # if cnt > 100:
+        #     time.sleep(0.1)
+        #     print next_v
+        if _min_remain_w < 0:
+            # Bug fix, if this is smaller than 0, traverse could never end.
+            # Treat this as invalid cycle and ignore! This is caused by
+            # breakpoint choice that ends with a vertex being traversed
+            # both positively and negatively in a cycle.
+            raise TooManyTraversalException()
         cycleFound.append(next_v)
         if next_v == startV:
-            if (SysSettings.EDGE_SELECTION =='try_all' or
+            if (SysSettings.EDGE_SELECTION == 'try_all' or
                     SysSettings.EDGE_SELECTION == 'smart_random'):
                 # (1)
                 remaining_cn = _min_remain_w
@@ -82,7 +96,9 @@ def findCycle(g, startV):
             e.g. during [H2-] => [H1-] => [H(sink)-], the above "break"
              will not work
             """
-            raise ImaginaryJunctionReachedException('Cannot find cycle. Please try disabling "preferred" junctions.')
+            raise ImaginaryJunctionReachedException(
+                'Cannot find cycle. Please try disabling "preferred" '
+                'junctions, or try disable --lp_with_original_ploidy')
     '''
     20170918 update, to solve situations like < V5+ V1+ H4- H6- V4+ V5+ > 
      where H4 is actually the source.
@@ -156,6 +172,11 @@ def selectNextEdge(aFrom, g, cycleStartV):
                 filtered_nextEdges = [e for e in nextEdges if not e.connectsSameDir()]
                 if filtered_nextEdges:
                     nextEdges = filtered_nextEdges
+            # if len(nextEdges) == 0:
+            #     raise TraversalException(
+            #         'Vertex {} has no available next edges left. '
+            #         'Please try disabling "preferred" junctions, '
+            #         'or try disable --lp_with_original_ploidy'.format(aFrom))
             index = random.randint(0, len(nextEdges) - 1)
             return nextEdges[index]
     elif SysSettings.EDGE_SELECTION == 'try_all':
@@ -211,8 +232,10 @@ def selectNextEdge(aFrom, g, cycleStartV):
 
 def findLGM(g, fork_pts=None):
     # type: (Graph, list) -> (list, list)
-    # Returns the path that uses up all weights. LGM=[[v1,v2,v3,...] [v2,v4,...]]
-    # s = start_v if start_v else g.getStartVertex()  # get source positive vertex
+    # Returns the path that uses up all weights.
+    # LGM=[[v1,v2,v3,...] [v2,v4,...]]
+
+    # s = start_v if start_v else g.getStartVertex() # get source positive vertex
     ALL_LGMs = []
     ALL_LGMs_cnt = []
 

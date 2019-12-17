@@ -527,7 +527,11 @@ class Graph:
             First check if all groups can be converted to 1m0 safely.
             Or, as a compromise, find the GCD among groups' copy number.
             '''
-            groups_cn_gcd = reduce(gcd, [_[0] for _ in self.mPloidy.values()])
+            if SysSettings.LP_WITH_ORIGINAL_PLOIDY:
+                groups_cn_gcd = 1
+            else:
+                groups_cn_gcd = reduce(gcd,
+                                       [_[0] for _ in self.mPloidy.values()])
             # Update mPloidy by dividing the gcd
             for gp in self.mPloidy:
                 self.mPloidy[gp] = (self.mPloidy[gp][0] / groups_cn_gcd, 0)
@@ -544,8 +548,8 @@ class Graph:
                 j.setWeight(2.0 * j.getCov() / (self.mAvgCov * groups_cn_gcd))
             self.mDeleteNormalCNByGroup = remove_copy
             for gp in self.mDeletedNormalSegList:
-                self.mDeletedNormalSegList[gp] = sorted(self.mDeletedNormalSegList[gp],
-                                                        key=lambda x: x.mIdx)
+                self.mDeletedNormalSegList[gp] = \
+                    sorted(self.mDeletedNormalSegList[gp], key=lambda x: x.mIdx)
                 # Ensure it is a cycle, ending with the last segment.
                 self.mDeletedNormalSegList[gp].append(self.mDeletedNormalSegList[gp][0])
             return groups_cn_gcd
