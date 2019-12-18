@@ -517,3 +517,104 @@ def findWeightedCycle(g, cn_cycle_dict, target_cn, start_vtx, last_try=False):
 
         cycles_to_lower_cn = []
     return merged
+
+
+def _testMergingCycleIntoBaseCycles(base_cyc_vertex_set_list, guest_cyc,
+                                    guest_cyc_cn):
+    guest_cyc_vtx_set = set(guest_cyc)
+    compl_guest_cyc_vtx_set = set(v.getSiblingVtx() for v in guest_cyc_vtx_set)
+
+    can_be_merged = []
+    for base_cyc_vtx_set in base_cyc_vertex_set_list:
+        if (base_cyc_vtx_set.intersection(guest_cyc_vtx_set) or
+                base_cyc_vtx_set.intersection(compl_guest_cyc_vtx_set)):
+            can_be_merged.append(True)
+        else:
+            can_be_merged.append(False)
+
+    mergeable_base_allele_cnt = can_be_merged.count(True)
+    per_allele_share = guest_cyc_cn // mergeable_base_allele_cnt
+    leftovers = guest_cyc_cn % mergeable_base_allele_cnt
+
+    return mergeable_base_allele_cnt, per_allele_share, leftovers, \
+           guest_cyc, can_be_merged
+
+
+def equallyAssignCyclesToAllele(g, cn_cycle_dict):
+    """
+    For 3 H1->H1 cycles A, 5 B, and 2 C, we assign them into
+    allele 1: A + 2B + C
+    allele 2: A + 2B + C
+    allele 3: A + B
+
+    This is only done heuristically.
+    """
+    assert len(g.mGroupPriority) == 1, \
+        "Do not support equal assign unit cycles with multiple groups"
+    group = g.mGroupPriority[0]
+    ploidy = g.mPloidy[group]
+    start_vtx = g.getGroupStartVertex(group)
+
+    # print cn_cycle_dict
+    # Find the normal allele, we try to assign more cycles to abnormal alleles
+    normal_cycles = []
+    allele_base_cycles = []
+    contig_per_allele = []
+    other_cycles = {}
+    vertex_set_per_allele = []
+    for cn in cn_cycle_dict:
+        for cyc in cn_cycle_dict[cn]:
+            if cyc[0] == start_vtx:
+                if g.isNormalAllele(cyc[:-1]):
+                    for i in range(cn):
+                        normal_cycles.append(tuple(cyc))
+                else:
+                    for i in range(cn):
+                        allele_base_cycles.append(tuple(cyc))
+            else:
+                other_cycles[tuple(cyc)] = cn
+    allele_base_cycles += normal_cycles
+    for cyc in allele_base_cycles:
+        vertex_set_per_allele.append(set(cyc))
+        contig_per_allele.append({tuple(cyc): 1})
+
+    # print allele_base_cycles
+    # print other_cycles
+    assert len(allele_base_cycles) == ploidy[0], \
+        "Unexpected allele base cycles count {}, " \
+        "should be {}".format(len(allele_base_cycles), ploidy)
+
+    # Do the assignment
+    # Try to find a cycle with most overlap with all base cycles
+    while other_cycles:
+        merge_test_results = []
+        for cyc in other_cycles:
+            cn = other_cycles[cyc]
+            merge_test_results.append(
+                _testMergingCycleIntoBaseCycles(vertex_set_per_allele, cyc, cn)
+            )
+
+        sorted_merge_test_results = sorted(merge_test_results,
+                                           key=lambda x: (x[0], x[1], x[2]),
+                                           reverse=True)
+
+        assert sorted_merge_test_results[0][0] > 0, \
+            "Unexpected error, Cannot find a cycle to merge to base alleles"
+
+        _, per_allele_share, leftovers, guest_cyc, can_be_merged = \
+            sorted_merge_test_results[0]
+
+        for i, mergeable in enumerate(can_be_merged):
+            if mergeable:
+                cn = per_allele_share
+                if leftovers > 0:
+                    cn += 1
+                    leftovers -= 1
+                contig_per_allele[i].update({guest_cyc: cn})
+
+        del other_cycles[guest_cyc]
+
+    alleles = [{1: cyc} for cyc in allele_base_cycles]
+    return alleles, contig_per_allele
+    # print cn_cycle_dict
+    # exit()

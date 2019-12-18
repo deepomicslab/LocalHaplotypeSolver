@@ -433,23 +433,35 @@ def constructAlleles(g, cycles_dict, cycles_dict_backup):
 
     stdout('\nFailed at provided copy number profile. Enter safe mode...')
     cycles_dict = cycles_dict_backup
-    alleles, contig_per_allele = [], []
-    for gp in g.mGroupPriority:
-        ploidy = g.mPloidy[gp]
-        for i in range(sum(ploidy)):
-            prev_cycles_dict = {}
-            [prev_cycles_dict.update({_cn: [_cyc for _cyc in cycles_dict[_cn]]}) for _cn in cycles_dict]
-            merged_lgm = EulerianCircuit.findWeightedCycle(g, cycles_dict, 1, g.getGroupStartVertex(gp))
-            contig_per_allele.append(consumedContigs(cycles_dict, prev_cycles_dict))
-            stdout('\n  Cycles left:')
-            print_cnt_cyc_dict(cycles_dict)
-            alleles.append({1: merged_lgm})
+    if SysSettings.EQUALLY_ASSIGN_UCYC_TO_ALLELES:
+        alleles, contig_per_allele = \
+            EulerianCircuit.equallyAssignCyclesToAllele(g, cycles_dict)
+    else:
+        alleles, contig_per_allele = [], []
+        for gp in g.mGroupPriority:
+            ploidy = g.mPloidy[gp]
+            for i in range(sum(ploidy)):
+                prev_cycles_dict = {}
+                # just a deep copy
+                [prev_cycles_dict.update(
+                    {_cn: [_cyc for _cyc in cycles_dict[_cn]]}
+                ) for _cn in cycles_dict]
+
+                merged_lgm = EulerianCircuit.findWeightedCycle(
+                    g, cycles_dict, 1, g.getGroupStartVertex(gp)
+                )
+                contig_per_allele.append(
+                    consumedContigs(cycles_dict, prev_cycles_dict)
+                )
+                stdout('\n  Cycles left:')
+                print_cnt_cyc_dict(cycles_dict)
+                alleles.append({1: merged_lgm})
     stdout('\n  Result')
     return alleles, contig_per_allele
 
-G = None
-def foo():
-    return getCycles(G)
+# G = None
+# def foo():
+#     return getCycles(G)
 
 def main():
     params = readParam()
@@ -579,6 +591,13 @@ def main():
                                     'N/A',  # no virus is involved in normal copy.
                                     notes=('REF_ALLELE', )))
 
+    if SysSettings.EQUALLY_ASSIGN_UCYC_TO_ALLELES:
+        print("\n[IMPORTANT]\n"
+              "You are using --equally_assign_cycles_to_alleles option, "
+              "which is an experimental feature and the above 'Result' "
+              "does not reflect the actual appearance of possible LGMs. "
+              "Please refer to the result file at:"
+              "\n\n{}\n".format(output_path))
 
     dumpResult(output_path, CONTIGS, RESULTS, FREE_VIRUS, g)
 
@@ -855,6 +874,15 @@ def readParam():
                              'i.e. do not change 2m0 into 1m0 for better  \n'
                              'LP performance. [False]')
 
+    parser.add_argument('--equally_assign_cycles_to_alleles',
+                        action='store_true', default=False,
+                        help='(EXPERIMENTAL) \n'
+                             'When multiple alleles are found for a sample  \n'
+                             '(and the alleles are different), try to assign\n'
+                             'unit cycles to each allele with equal number  \n'
+                             'of copies. Used with --drop_ref_allele and    \n'
+                             '--lp_with_original_ploidy [False]')
+
     parser.add_argument('--drop_ref_allele', dest='drop_ref_allele',
                         default='M',
                         help='Drop major ("M") or minor allele ("m") as the \n'
@@ -967,6 +995,14 @@ def readParam():
         # if os.path.exists(params.output_file):
         #     pass
     # SysSettings.PRINT_RESULT = params.print_result
+
+    if params.equally_assign_cycles_to_alleles:
+        if params.keep_ref_allele or not params.lp_with_original_ploidy:
+            print('Cannot use --equally_assign_cycles_to_alleles while keeping'
+                  'reference alleles or not calculating LP with original '
+                  'ploidy')
+            exit(2)
+        SysSettings.EQUALLY_ASSIGN_UCYC_TO_ALLELES = True
     return params
 
 
