@@ -533,8 +533,12 @@ def _testMergingCycleIntoBaseCycles(base_cyc_vertex_set_list, guest_cyc,
             can_be_merged.append(False)
 
     mergeable_base_allele_cnt = can_be_merged.count(True)
-    per_allele_share = guest_cyc_cn // mergeable_base_allele_cnt
-    leftovers = guest_cyc_cn % mergeable_base_allele_cnt
+    if mergeable_base_allele_cnt > 0:
+        per_allele_share = guest_cyc_cn // mergeable_base_allele_cnt
+        leftovers = guest_cyc_cn % mergeable_base_allele_cnt
+    else:
+        per_allele_share = 0
+        leftovers = guest_cyc_cn
 
     return mergeable_base_allele_cnt, per_allele_share, leftovers, \
            guest_cyc, can_be_merged
@@ -610,8 +614,10 @@ def equallyAssignCyclesToAllele(g, cn_cycle_dict):
                 if leftovers > 0:
                     cn += 1
                     leftovers -= 1
-                contig_per_allele[i].update({guest_cyc: cn})
-
+                    vertex_set_per_allele[i] |= set(guest_cyc)
+                if cn > 0:
+                    contig_per_allele[i].update({guest_cyc: cn})
+                    vertex_set_per_allele[i] |= set(guest_cyc)
         del other_cycles[guest_cyc]
 
     alleles = [{1: cyc} for cyc in allele_base_cycles]
