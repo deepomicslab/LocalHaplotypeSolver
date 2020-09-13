@@ -9,9 +9,11 @@ __author__ = 'XU Chang'
 
 FORKING_CHOICE = {}
 
+
 def findCycle_recur(g, startV):
     """Deprecated, recursion is no good"""
     cycleFound = [startV]
+
     def _findCycle(aFrom):
         next_edge = selectNextEdge(aFrom, g, startV)
         aFrom.mLastEdgeChoice = next_edge
@@ -211,7 +213,7 @@ def selectNextEdge(aFrom, g, cycleStartV):
                 # This should never happen if all forks are used for permutation and combination.
                 # stderr(ex)
                 # return [e for e in aFrom.mNextEdges if e.hasWeight()][0]
-                #raise ImaginaryJunctionReachedException('Key error at FORKING_CHOICE[aFrom] for {}'.format(
+                # raise ImaginaryJunctionReachedException('Key error at FORKING_CHOICE[aFrom] for {}'.format(
                 # aFrom.getAbbr()))
                 x = BreakPointNotEnumeratedException()
                 x.breakPoint = aFrom
@@ -263,28 +265,6 @@ def findLGM(g, fork_pts=None):
                 br = True
 
     return ALL_LGMs, ALL_LGMs_cnt
-    # s = g.getStartVertex()
-    # print 'got source', s
-    # if not s: # Until all sources are drained.
-    #     break
-    # br = False
-    # LGM = []
-    # while not br:
-    #     cycle = findCycle(g, s, group=s.getGroup())
-    #     print 'raw cycle', [v.getAbbr() for v in cycle]
-    #     LGM.append(cycle)
-    #     _lgm_flat = [v for c in LGM for v in c]  # [[a,b], [c,d]] => [a,b,c,d]
-    #     for idx, v in enumerate(_lgm_flat):
-    #         if v.hasWeight():
-    #             s = v
-    #             break
-    #         elif idx == len(_lgm_flat) - 1:
-    #             br = True
-    #
-    # printLGM(ALL_LGMs)
-    # ALL_LGMs += LGM
-
-
 
 
 def mergeCycles(cycles):
@@ -440,6 +420,7 @@ def _breakdown_qq(cycle_list, break_point_v):
 
     return new_cycle_list
 
+
 def findWeightedCycle(g, cn_cycle_dict, target_cn, start_vtx, last_try=False):
     """find a composite cycle with weight specified
 
@@ -559,7 +540,6 @@ def equallyAssignCyclesToAllele(g, cn_cycle_dict):
     ploidy = g.mPloidy[group]
     start_vtx = g.getGroupStartVertex(group)
 
-    # print cn_cycle_dict
     # Find the normal allele, we try to assign more cycles to abnormal alleles
     normal_cycles = []
     allele_base_cycles = []
@@ -582,8 +562,6 @@ def equallyAssignCyclesToAllele(g, cn_cycle_dict):
         vertex_set_per_allele.append(set(cyc))
         contig_per_allele.append({tuple(cyc): 1})
 
-    # print allele_base_cycles
-    # print other_cycles
     assert len(allele_base_cycles) == ploidy[0], \
         "Unexpected allele base cycles count {}, " \
         "should be {}".format(len(allele_base_cycles), ploidy)
@@ -622,5 +600,3 @@ def equallyAssignCyclesToAllele(g, cn_cycle_dict):
 
     alleles = [{1: cyc} for cyc in allele_base_cycles]
     return alleles, contig_per_allele
-    # print cn_cycle_dict
-    # exit()

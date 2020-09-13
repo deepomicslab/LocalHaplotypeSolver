@@ -4,6 +4,7 @@ from fractions import gcd
 import SysSettings
 from collections import OrderedDict
 
+
 class Graph:
     def __init__(self):
         self.mName = 'test'
@@ -15,7 +16,7 @@ class Graph:
         self.mAvgCov = None
         self.mAvgCovRaw = None
         self.mSource = {}  # segment  {Group: sourceSegment}
-        self.mSink = {}    # segment
+        self.mSink = {}  # segment
         self.mMaxVIdx = 0
         self.mMinVIdx = 100000000
         self.mPurity = 1.0
@@ -37,7 +38,7 @@ class Graph:
                 continue
             sp = line.strip().split()
             sp[0] = sp[0].upper()
-            # print sp
+
             if sp[0] == 'SAMPLE':
                 self.mName = sp[1]
             elif sp[0] in ('AVG_DP', 'AVG_DEPTH'):
@@ -380,7 +381,6 @@ class Graph:
                 tags.update({sp[0]: sp[1]})
         return tags
 
-
     def readTag(self, tag_str):
         output_tags = {}
         tags = {}
@@ -486,7 +486,6 @@ class Graph:
                 # s.mCov.mCov = s.mCov.mCovAdjusted
                 cov_adjusted = max((s.mCov.mCov - (1 - self.mPurity) * self.mAvgCov) / self.mPurity, 0.0)
                 s.setCov(cov_adjusted)
-
 
     def setLoop(self):
         """Set a connection from sink+ => source+.
@@ -771,7 +770,7 @@ class Graph:
         stdout('AVG: {0:.2f}'.format(self.mAvgCov))
         for s in self.mSegments:
             stdout('{0}{1}, cov: {2:.2f}, cov(original): {4:.2f} weight: {3:.3f}' \
-                .format(s.mType, s.mIdx, s.mCov.mCov, s.mCov.mWeight, s.mCov.mCovOriginal))
+                   .format(s.mType, s.mIdx, s.mCov.mCov, s.mCov.mWeight, s.mCov.mCovOriginal))
             stdout('\tPosV ({0}) nextEdge:\t'.format(s.mPosV.getAbbr()), end='')
             for e in s.mPosV.mNextEdges:
                 stdout(e.getAbbr() + ':' + str(e.getWeight()) + '\t', end='')
@@ -786,4 +785,3 @@ class Graph:
                 stdout(e.getAbbr() + ':' + str(e.getWeight()) + '\t', end='')
             stdout()
         stdout('--------------------------------------')
-

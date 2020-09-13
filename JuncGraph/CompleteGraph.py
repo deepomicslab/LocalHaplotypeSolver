@@ -185,7 +185,6 @@ def reachability(g):
                 pass
             else:
                 continue
-        # stdout('Processing reachability for', s)
 
         # update 20170913, check the groups a virus seg connects to.
         if seg.mType == 'V':
@@ -194,7 +193,6 @@ def reachability(g):
             groupsToReach = list(set(l1 + l2))
         else:
             groupsToReach = [seg.getGroup()]
-        # print seg, 'needs to reach group:', groupsToReach
 
         pos_to_sink = None  # positive vertex is reachable to sink
         for gp in groupsToReach:
@@ -206,11 +204,8 @@ def reachability(g):
                                                        source=set_to_source, sink=set_to_sink,
                                                        targetGroup=gp)
                     if pos_r:
-                        # print s, 'reached something, is it the sink+?', pos_to_sink
-                        #print seg, 'pos reaches', gp
                         break  # reachable to either source or sink.
                     else:
-                        # print 'choose for ', s
                         n = chooseNextVertex(g, s)
                         try:
                             # j = g.addJunction(s.mType, s.mIdx, s.mDir,
@@ -249,13 +244,10 @@ def reachability(g):
                 s = seg.mNegV
                 while True:
                     if pos_to_sink:  # check if its neg seg reaches source too
-                        # print '1'
                         neg_r, neg_to_sink = _reachability(g, seg.mNegV, sink=False, targetGroup=gp)
                     else:
                         neg_r, neg_to_sink = _reachability(g, seg.mNegV, source=False, targetGroup=gp)
-                    # print seg
                     if neg_r and pos_to_sink != neg_to_sink:
-                        # print s, ' reaches', gp
                         break
                     else:  # pos and neg segs should not be reachable to the same end.
                         """There's an issue here, if pos reaches sink-pos, then neg
@@ -266,7 +258,6 @@ def reachability(g):
                         NotReachableException, It's all because of the input is
                         not sufficient to construct a graph. Not trying to fix the
                         problem here."""
-                        # print 'choose for 2', s
                         try:
                             n = chooseNextVertex(g, s)
                             try:
@@ -308,8 +299,6 @@ def reachability(g):
                 if not _do_not_break:
                     break  # else then continue the outer while loop
     # return True
-
-    # sys.exit('stop here')
 
 
 def isNeighbor(g, vertex1, vertex2):
@@ -417,7 +406,6 @@ def chooseNextVertex(g, startV):
                 else:
                     nextV = g.getSegment('V', startV.mIdx - 1).mNegV
     except AttributeError as ae:
-        # return None
         import traceback
         raise NotReachableException('{}\nCannot choose next V for {}.\n'
                                     'Make sure the numbering of segments from '
@@ -428,12 +416,6 @@ def chooseNextVertex(g, startV):
                  'reachability of segments.\nAt vertex {}'.format(startV))
     return nextV
 
-
-# def calculateWeight(g):
-#     for s in g.mSegments:
-#         s.setWeight(2.0 * s.getCov() / g.mAvgCov)
-#     for j in g.mJunctions:
-#         j.setWeight(2.0 * j.getCov() / g.mAvgCov)
 
 reach_error_msg = """
 > Error while trying to add necessary edges for segment [ {} ].

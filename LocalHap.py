@@ -8,7 +8,7 @@ import itertools
 from Util.Utilities import *
 from collections import namedtuple
 
-__version__ = '1.0.0'
+__version__ = '1.0.2'
 
 
 def createGraph(path):
@@ -20,7 +20,7 @@ def createGraph(path):
         '''
         In case of Xm0, no normal copy needs to be removed.
         In case of Xm(0.5X), only major copy needs to be removed.
-        In case of Xm(!=0.5X), try to remove minor & major separately.
+        In case of Xm(!=0.5X), remove major by default, unless specified otherwise.
         '''
         drop_setting = {}
         for group in raw_ploidy:
@@ -33,46 +33,6 @@ def createGraph(path):
                 _drop = SysSettings.DELETE_NORMAL.get(group, 'M')
             drop_setting.update({group: _drop})
         g, lp_obj = _createGraph(input_lines, drop=True, drop_setting=drop_setting)
-
-        #
-        # group_order, iter_setting = [], []
-        # for group in raw_ploidy:
-        #     group_order.append(group)
-        #     major_minor_cn = raw_ploidy[group]
-        #     '''
-        #     In case of Xm0, no normal copy needs to be removed.
-        #     In case of Xm(0.5X), only major copy needs to be removed.
-        #     In case of Xm(!=0.5X), try to remove minor & major separately.
-        #     '''
-        #     if major_minor_cn[0] == major_minor_cn[1]:
-        #         iter_setting.append(('M'))
-        #     elif major_minor_cn[1] == 0:
-        #         iter_setting.append(('-'))
-        #     else:
-        #         if group in SysSettings.DELETE_NORMAL:
-        #             iter_setting.append((SysSettings.DELETE_NORMAL[group]))
-        #         else:
-        #             iter_setting.append(('M', 'm'))
-        #
-        # min_lp_obj = float('inf')
-        # min_lp_obj_g = None
-        # for flag_by_group in itertools.product(*iter_setting):
-        #     '''
-        #     flag_by_group: ('M', '-', 'm'), group_order: [gp1, gp2, gp3]
-        #
-        #     Meaning that gp1 removes major, do nothing to gp2 and gp3 removes
-        #     minor allele as normal allele.
-        #     '''
-        #     drop_setting = {group_order[gp_idx]: flag for gp_idx, flag in enumerate(flag_by_group)}
-        #     _g, _lp_obj = _createGraph(input_lines, drop=True, drop_setting=drop_setting)
-        #     # stdout(_g.mLog['lp'])
-        #     # stderr('--' * 30)
-        #     print 'Mode: Dropping', drop_setting, 'Normalized Obj', _lp_obj
-        #     if _lp_obj < min_lp_obj:
-        #         min_lp_obj = _lp_obj
-        #         min_lp_obj_g = _g
-        # g, lp_obj = min_lp_obj_g, min_lp_obj
-        print 'chose', lp_obj
     else:
         g, lp_obj = _createGraph(input_lines, drop=False)
 
@@ -85,27 +45,6 @@ def createGraph(path):
             f.write(g.mLog['lp'])
     return g
 
-    # if SysSettings.DELETE_NORMAL_ALLELE:
-    #     g1, lp_obj1 = _createGraph(path,
-    #                                drop_normal=True,
-    #                                drop_major=False)
-    #     stdout(g1.mLog['lp'])
-    #     stderr('--' * 30)
-    #     g2, lp_obj2 = _createGraph(path,
-    #                                drop_normal=True,
-    #                                drop_major=True)
-    #     stdout(g2.mLog['lp'])
-    #     stderr('--' * 30)
-    #     stdout('obj1', lp_obj1, 'obj2', lp_obj2)
-    #     g = g1 if lp_obj1 <= lp_obj2 else g2
-    # else:
-    #     g, lp_obj = _createGraph(path, drop_normal=False)
-    # g.printGraphInfo()
-    # g.backupWeight()
-    # stdout(g.mLog['lp'])
-    # stderr('--' * 30)
-    # return g
-
 
 def _createGraph(input_lines, drop=False, drop_setting=None):
     g = JuncGraph.Graph.Graph()
@@ -116,7 +55,6 @@ def _createGraph(input_lines, drop=False, drop_setting=None):
     g.setLoop()
     cn_gcd = g.calculateWeight(drop=drop, drop_setting=drop_setting)
     g.setInferredJunctionCred()
-    # g.printGraphInfo()
     raw_lp_obj = BalanceGraph.solveLp(g, g.mPloidy)
     return g, raw_lp_obj * cn_gcd
 
@@ -167,7 +105,7 @@ def getCycles(g):
         stdout('> Starting try_all mode...')
         _fork_pts = []
         for raw_cycle in lgm:
-            _fork_pts += EulerianCircuit.getBreakPoints(raw_cycle) # the breakpoints at this lgm.
+            _fork_pts += EulerianCircuit.getBreakPoints(raw_cycle)  # the breakpoints at this lgm.
 
         # fork_pts = list(set(fork_pts))
         fork_pts = []
@@ -199,7 +137,6 @@ def getCycles(g):
             _fork_pts += EulerianCircuit.getBreakPoints(raw_cycle)
         fork_pts = []
         [fork_pts.append(v) for v in _fork_pts if v not in fork_pts]  # ordered dedup
-        # fork_pts = list(set(fork_pts))  # get it in order
         stdout('> Forking points: ', *[p.getAbbr() for p in fork_pts])
 
     # ================================== #
@@ -214,7 +151,7 @@ def getCycles(g):
         # fork_pts = _all_fork_pts
         print [p.getAbbr() for p in fork_pts]
         # Contig dicts with less number of values are considered simpler.
-        _cycle_dict_simplicity = lambda d : sum([len(_) for _ in d.values()])
+        _cycle_dict_simplicity = lambda d: sum([len(_) for _ in d.values()])
         while 1:
             try_again = False
             duplication_cnt = 0
@@ -223,7 +160,7 @@ def getCycles(g):
             for fp in fork_pts:
                 # fork_choices = [[(A1,A2,A3), (A1,A3,A2), (A2,A1,A3)...], [(B1,B2), (B2,B1)]]
 
-                fork_choices.append([p for p in itertools.permutations([_i for _i,_ne in enumerate(fp.mNextEdges)
+                fork_choices.append([p for p in itertools.permutations([_i for _i, _ne in enumerate(fp.mNextEdges)
                                                                         if not g.edgeReachesImaginaryJunction(_ne)])])
                 EulerianCircuit.FORKING_CHOICE.update({fp: None})
             # Get the number of iterations needed.
@@ -321,7 +258,6 @@ def getCntCycDict(g, lgm, cyc_cnt, fork_pts):
             '''
             if len(set([v.getGroup() for v in br_c if v.mType == 'H'])) > 1:
                 raise MixedGroupException(str([v.getAbbr() for v in br_c]))
-            # print [v.getAbbr() for v in br_c]
             for i, v in enumerate(br_c[1:-1]):
                 if g.isSource(v.mSeg):
                     # change < H2+ H3+ H1+ H2+ > to < H1+ H2+ H3+ H1+ >
@@ -350,16 +286,6 @@ def getCntCycDict(g, lgm, cyc_cnt, fork_pts):
             cnt_cyc_dict.update({cnt: [c]})
 
     return cnt_cyc_dict
-
-    # [unique_cycles.append(c) for c in breakdown if c not in unique_cycles]  # cannot use set()
-    # cnt_cyc_dict = {}
-    # for c in unique_cycles:
-    #     cycle_cnt = breakdown.count(c)
-    #     if cycle_cnt in cnt_cyc_dict:
-    #         cnt_cyc_dict[cycle_cnt].append(c)
-    #     else:
-    #         cnt_cyc_dict.update({cycle_cnt: [c]})
-    # return cnt_cyc_dict
 
 
 def compareCycles(cycles_dict1, cycles_dict2):
@@ -459,9 +385,6 @@ def constructAlleles(g, cycles_dict, cycles_dict_backup):
     stdout('\n  Result')
     return alleles, contig_per_allele
 
-# G = None
-# def foo():
-#     return getCycles(G)
 
 def main():
     params = readParam()
@@ -478,7 +401,7 @@ def main():
     # Create the graph object
     g = createGraph(sample_path)
     # Add dropped normal allele into contigs list.
-    dropped_normal_allele = {} # {cyc_tuple: cn}
+    dropped_normal_allele = {}  # {cyc_tuple: cn}
     for gp in g.mDeleteNormalCNByGroup:
         contig_tuple = tuple([_.mPosV for _ in g.mDeletedNormalSegList[gp]])
         if g.mDeleteNormalCNByGroup[gp] > 0:
@@ -486,13 +409,7 @@ def main():
             _CONTIG_CNT += 1
             dropped_normal_allele.update({contig_tuple: g.mDeleteNormalCNByGroup[gp]})
 
-    # global G
-    # G = g
-    # import cProfile
-    # cProfile.run('foo()')
-    # sys.exit()
-
-    all_cycles_dict = getCycles(g) # [{cyc1_cnt: cyc1, cyc2_cnt:cyc2}, {...}]
+    all_cycles_dict = getCycles(g)  # [{cyc1_cnt: cyc1, cyc2_cnt:cyc2}, {...}]
     # For each solution
     for index, cycles_dict in enumerate(all_cycles_dict):
         # Back up all cycles
@@ -569,14 +486,18 @@ def main():
                 _group = '1'
 
             # Organize output.
-            RESULTS.append(_res(str(index+1),
-                                _group,
-                                all_contigs_str,
-                                str(idx + 1),
-                                str(actual_allele_cn),
-                                contig_by_allele_str,
-                                free_virus_str,
-                                notes=()))
+            RESULTS.append(
+                _res(
+                    str(index + 1),
+                    _group,
+                    all_contigs_str,
+                    str(idx + 1),
+                    str(actual_allele_cn),
+                    contig_by_allele_str,
+                    free_virus_str,
+                    notes=()
+                )
+            )
         for gp in g.mDeleteNormalCNByGroup:
             idx += 1
             removed_cn = g.mDeleteNormalCNByGroup[gp]
@@ -589,7 +510,7 @@ def main():
                                     str(removed_cn),
                                     'UCYC{}:1'.format(ucyc_id),
                                     'N/A',  # no virus is involved in normal copy.
-                                    notes=('REF_ALLELE', )))
+                                    notes=('REF_ALLELE',)))
 
     if SysSettings.EQUALLY_ASSIGN_UCYC_TO_ALLELES:
         print("\n[IMPORTANT]\n"
@@ -716,7 +637,7 @@ def dumpResult(path, contigs, results, free_virus, graph):
         # Write Solution
         _s_template = 'SOLUTION\t{}\n'
         for res in results:
-            #'sol_no', 'group', 'sol_ucyc', 'allele_no', 'allele_cn', 'allele_ucyc'
+            # 'sol_no', 'group', 'sol_ucyc', 'allele_no', 'allele_cn', 'allele_ucyc'
             _s_fields = ['NO={}'.format(res.sol_no),
                          'GROUP={}'.format(res.group),
                          'SOLUTION_UCYC={}'.format(res.sol_ucyc),
@@ -735,8 +656,8 @@ def readParam():
     parser = argparse.ArgumentParser(
         description='Reconstructing the local haplotype surrounding '
                     'virus integrated regions \non human genome. '
-                    '\n\nVersion 1.0.1 (9-JUN-2018)',
-        epilog='Details of file formats and other info will be posted'
+                    '\n\nVersion 1.0.2 (13-SEP-2020)',
+        epilog='Details of file formats and other info will be posted '
                'on our GitHub page.\n\n'
                'Developed by:  \n'
                '  Chang Xu (xuchang0310@gmail.com)   \n'
@@ -1046,4 +967,3 @@ def _read_drop_normal_settings(param_str):
 
 if __name__ == '__main__':
     main()
-
