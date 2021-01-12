@@ -1,9 +1,9 @@
 # LocalHaplotypeSolver
 
-Requires Python2.7 and PuLP package for linear programming.
+Requires Python2.7 and PuLP package (1.6.8) for linear programming.
 
 ```shell script
-python -m pip install pulp
+python -m pip install pulp==1.6.8
 ```
 
 ## Example
